@@ -27,9 +27,9 @@ steps:
 
       case "$PM2_NAME" in
         panchnity|panchnity-next)
-          echo "Cleaning node_modules and .next for $PM2_NAME..."
-          rm -rf node_modules
-          rm -rf .next
+          # echo "Cleaning node_modules and .next for $PM2_NAME..."
+          # rm -rf node_modules
+          # rm -rf .next
 
           echo "Installing ALL dependencies (including devDependencies)..."
           npm install --include=dev
