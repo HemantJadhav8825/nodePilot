@@ -21,20 +21,19 @@ export const githubWebhookHandler = async (request, reply) => {
   const event = request.headers['x-github-event'];
   const secret = process.env.GITHUB_SECRET;
 
-  // 1. Handle Ping Event (Verification from GitHub)
-  if (event === 'ping') {
-    request.log.info('Received ping event from GitHub');
-    return reply.status(200).send({ message: 'pong', zen: request.body.zen });
-  }
-
-  // 2. Validate Event Type (Only allow push)
+  // 1. Validate Event Type
   if (event !== 'push') {
-    request.log.info(`Ignored event: ${event}`);
-    return reply.status(202).send({ message: `NodePilot only processes 'push' events. ${event} ignored.` });
+    request.log.info(`Ignored non-push event: ${event}`);
+    return reply.status(202).send({ message: 'Event ignored' });
   }
 
-  // 2. Validate Signature
-  // Note: request.rawBody must be available (requires fastify-raw-body or custom hook)
+  // 2. Validate Secret Configuration
+  if (!secret) {
+    request.log.error('GITHUB_SECRET is not defined in environment');
+    return reply.status(500).send({ error: 'Server Error', message: 'Webhook secret not configured' });
+  }
+
+  // 3. Validate Signature
   const isValid = validateSignature(
     JSON.stringify(request.body), 
     signature, 
