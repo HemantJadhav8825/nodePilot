@@ -107,3 +107,5 @@ PM2: Stability (keeps the whole system alive).
 This architecture ensures your deployments are atomic (one at a time), traced (logs for every step), and secure (verified by GitHub).
 
 #-------------------------------------------------------------------------
+<img width="1012" height="684" alt="image" src="https://github.com/user-attachments/assets/5b1cb90d-8980-452c-8a6f-7f88eb003ffa" />
+
