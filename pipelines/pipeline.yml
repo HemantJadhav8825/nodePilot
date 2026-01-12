@@ -24,6 +24,19 @@ steps:
     run: |
       set -e
       cd "$TARGET_DIR"
+
+      case "$PM2_NAME" in
+        panchnity|panchnity-next)
+          echo "Cleaning node_modules and .next for $PM2_NAME..."
+          rm -rf node_modules
+          rm -rf .next
+          ;;
+        *)
+          echo "No cleanup required for $PM2_NAME"
+          ;;
+      esac
+
+      echo "Installing dependencies..."
       npm i
 
   - name: "Build: Application (Conditional)"
