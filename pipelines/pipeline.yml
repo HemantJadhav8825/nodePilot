@@ -30,14 +30,15 @@ steps:
           echo "Cleaning node_modules and .next for $PM2_NAME..."
           rm -rf node_modules
           rm -rf .next
+
+          echo "Installing ALL dependencies (including devDependencies)..."
+          npm install --include=dev
           ;;
         *)
-          echo "No cleanup required for $PM2_NAME"
+          echo "Installing production dependencies only..."
+          npm install
           ;;
       esac
-
-      echo "Installing dependencies..."
-      npm i
 
   - name: "Build: Application (Conditional)"
     run: |
