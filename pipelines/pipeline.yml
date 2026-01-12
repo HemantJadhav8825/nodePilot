@@ -24,12 +24,7 @@ steps:
     run: |
       set -e
       cd "$TARGET_DIR"
-
-      if [ "$NODE_ENV" = "production" ]; then
-        npm ci --omit=dev
-      else
-        npm ci
-      fi
+      npm i
 
   - name: "Build: Application (Conditional)"
     run: |
