@@ -1,48 +1,81 @@
 name: NodePilot Dynamic Multi-App Pipeline
+
+env:
+  NODE_ENV: production
+
 steps:
-  - name: "Git: Pull Changes"
+  - name: "Validate: Environment"
     run: |
-      echo "Deploying to: $TARGET_DIR"
-      if [ ! -d "$TARGET_DIR" ]; then
-        echo "Error: Directory $TARGET_DIR does not exist."
-        exit 1
-      fi
-      cd $TARGET_DIR
-      git fetch origin $BRANCH
-      git reset --hard origin/$BRANCH
+      set -e
+      : "${TARGET_DIR:?TARGET_DIR is required}"
+      : "${BRANCH:?BRANCH is required}"
+      : "${PM2_NAME:?PM2_NAME is required}"
+
+  - name: "Git: Sync Repository"
+    run: |
+      set -e
+      echo "Deploying $PM2_NAME to $TARGET_DIR ($BRANCH)"
+      cd "$TARGET_DIR"
+      git fetch origin "$BRANCH"
+      git checkout "$BRANCH"
+      git reset --hard "origin/$BRANCH"
 
   - name: "Install: Dependencies"
     run: |
-      cd $TARGET_DIR
-      if [ "$PM2_NAME" == "panchnity-api" ]; then
-        npm install --production
+      set -e
+      cd "$TARGET_DIR"
+
+      if [ "$NODE_ENV" = "production" ]; then
+        npm ci --omit=dev
       else
-        npm install
+        npm ci
       fi
 
-  - name: "Build: Application"
+  - name: "Build: Application (Conditional)"
     run: |
-      cd $TARGET_DIR
-      # Only run build if the package.json has a build script
-      if grep -q '"build":' package.json; then
-        echo "Running build for $PM2_NAME..."
-        npm run build
+      set -e
+      cd "$TARGET_DIR"
+
+      case "$PM2_NAME" in
+        admin-panel)
+          echo "Building admin-panel..."
+          npm run build
+          ;;
+        panchnity)
+          echo "Building panchnity (prod)..."
+          npm run build:prod
+          ;;
+        panchnity-next)
+          echo "Building panchnity-next..."
+          npm run build
+          ;;
+        panchnity-api)
+          echo "API project detected — skipping build."
+          ;;
+        *)
+          echo "Unknown PM2_NAME ($PM2_NAME) — skipping build."
+          ;;
+      esac
+
+  - name: "Process: Start or Reload PM2"
+    run: |
+      set -e
+      cd "$TARGET_DIR"
+
+      if pm2 list | grep -q "$PM2_NAME"; then
+        echo "Reloading PM2 process..."
+        pm2 reload "$PM2_NAME" --update-env
       else
-        echo "No build script found, skipping build step."
+        echo "Starting new PM2 process..."
+
+        if npm run | grep -q " start"; then
+          pm2 start npm --name "$PM2_NAME" -- start
+        else
+          pm2 start ecosystem.config.js --only "$PM2_NAME"
+        fi
       fi
 
-  - name: "Process: Restart via PM2"
+  - name: "Post-Deploy: Save & Reload Nginx"
     run: |
-      echo "Restarting $PM2_NAME..."
-      # Attempt to reload/restart. If not exists, start it.
-      # Special case for Next.js apps to start correctly
-      if [ -f "$TARGET_DIR/next.config.js" ] || [ -f "$TARGET_DIR/next.config.mjs" ]; then
-        pm2 reload $PM2_NAME || pm2 start npm --name "$PM2_NAME" -- start
-      else
-        pm2 reload $PM2_NAME || pm2 start src/server.js --name "$PM2_NAME"
-      fi
-
-  - name: "Post-Deploy: Nginx Reload"
-    run: |
-      echo "Finalizing deployment..."
+      pm2 save
       sudo nginx -t && sudo nginx -s reload
