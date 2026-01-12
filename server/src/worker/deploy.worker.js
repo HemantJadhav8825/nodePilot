@@ -14,7 +14,8 @@ dotenv.config({ path: path.join(__dirname, '../../../.env') });
 export const deployWorker = new Worker(
   'deploy',
   async (job) => {
-    console.log(`[Worker] Started Job ID: ${job.id} for ${job.data.repoName}`);
+    const attempt = job.attemptsMade + 1;
+    console.log(`[Worker] Attempt ${attempt}/2 - Started Job ID: ${job.id} for ${job.data.repoName}`);
     
     try {
       const result = await executePipeline(job);
@@ -22,7 +23,13 @@ export const deployWorker = new Worker(
       return result;
     } catch (error) {
       console.error(`[Worker] Job ID: ${job.id} failed:`, error.message);
-      // Throw error to BullMQ to handle retries/failures
+      
+      // Do not retry if failure reason is "deployment lock active"
+      if (error.message.includes('Deployment already in progress')) {
+        console.warn(`[Worker] Job ID: ${job.id} discarded (lock active)`);
+        await job.discard();
+      }
+      
       throw error;
     }
   },
@@ -51,3 +58,23 @@ deployWorker.on('error', (err) => {
 });
 
 console.log('[Worker] Deploy worker initialized and listening for jobs...');
+
+/**
+ * Graceful Shutdown for Worker
+ */
+const shutdown = async (signal) => {
+  console.log(`\n[Worker] Received ${signal}. Starting graceful shutdown...`);
+  
+  try {
+    // 1. Stop processing new jobs and wait for current ones to finish
+    await deployWorker.close();
+    console.log('[Worker] Jobs finished. Connection closed.');
+    process.exit(0);
+  } catch (err) {
+    console.error('[Worker] Error during shutdown:', err);
+    process.exit(1);
+  }
+};
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));

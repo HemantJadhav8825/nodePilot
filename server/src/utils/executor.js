@@ -1,3 +1,4 @@
+import { createWriteStream } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import yaml from 'js-yaml';
@@ -5,18 +6,29 @@ import { execa } from 'execa';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const LOGS_DIR = path.join(__dirname, '../../logs');
 
 /**
  * Pipeline Engine Executor
  */
-export async function runPipeline(jobData) {
+export async function runPipeline(jobData, jobId) {
   const { repoName, branch } = jobData;
   const pipelinePath = path.join(__dirname, '../../../../pipelines/pipeline.yml');
+  const logFilePath = path.join(LOGS_DIR, `${jobId}.log`);
+  
+  // Ensure logs directory exists
+  await fs.mkdir(LOGS_DIR, { recursive: true });
+  const logStream = createWriteStream(logFilePath, { flags: 'a' });
 
-  console.log(`[Executor] Reading pipeline configuration for ${repoName}`);
+  const log = (msg) => {
+    const formatted = `${new Date().toISOString()} - ${msg}\n`;
+    process.stdout.write(formatted);
+    logStream.write(formatted);
+  };
+
+  log(`[Executor] Starting pipeline for ${repoName} (Job: ${jobId})`);
 
   try {
-    // 1. Read and parse YAML
     const fileContent = await fs.readFile(pipelinePath, 'utf8');
     const config = yaml.load(fileContent);
 
@@ -24,45 +36,39 @@ export async function runPipeline(jobData) {
       throw new Error('Invalid pipeline configuration: "steps" is required');
     }
 
-    console.log(`[Executor] Starting pipeline: ${config.name || 'Unnamed Pipeline'}`);
+    log(`[Executor] Pipeline: ${config.name || 'Unnamed Pipeline'}`);
 
-    // 2. Execute steps sequentially
     for (const step of config.steps) {
-      console.log(`\n--- Step: ${step.name || 'Unnamed Step'} ---`);
+      log(`\n--- Step: ${step.name || 'Unnamed Step'} ---`);
 
       try {
         const subprocess = execa(step.run, {
           shell: true,
           all: true,
-          env: {
-            ...process.env,
-            REPO_NAME: repoName,
-            BRANCH: branch,
-          },
-          // Set working directory if workspace logic is implemented later
-          // cwd: workspacePath, 
+          timeout: 600000,
+          killSignal: 'SIGKILL',
+          env: { ...process.env, REPO_NAME: repoName, BRANCH: branch },
         });
 
-        // 3. Stream stdout/stderr to console
         subprocess.all.on('data', (data) => {
           process.stdout.write(data);
+          logStream.write(data);
         });
 
         await subprocess;
-        
-        console.log(`[Executor] Step "${step.name}" completed successfully.`);
+        log(`[Executor] Step "${step.name}" completed.`);
       } catch (stepError) {
-        console.error(`[Executor] Step "${step.name}" failed: ${stepError.message}`);
-        // 4. Stop pipeline on failure
+        log(`[Executor] Step "${step.name}" failed: ${stepError.message}`);
         throw new Error(`Pipeline failed at step: ${step.name}`);
       }
     }
 
-    console.log(`\n[Executor] Pipeline completed successfully for ${repoName}`);
+    log(`\n[Executor] Pipeline successful for ${repoName}`);
     return { success: true };
-
   } catch (error) {
-    console.error(`[Executor] Pipeline Error: ${error.message}`);
+    log(`[Executor] Pipeline Error: ${error.message}`);
     throw error;
+  } finally {
+    logStream.end();
   }
 }

@@ -16,6 +16,22 @@ const HOST = process.env.HOST || '0.0.0.0';
 const start = async () => {
   const app = await createApp();
 
+  // Handle graceful shutdown
+  const shutdown = async (signal) => {
+    console.log(`\n[Server] Received ${signal}. Shutting down...`);
+    try {
+      await app.close();
+      console.log('[Server] Service closed.');
+      process.exit(0);
+    } catch (err) {
+      console.error('[Server] Shutdown error:', err);
+      process.exit(1);
+    }
+  };
+
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+
   try {
     await app.listen({ port: PORT, host: HOST });
     app.log.info(`NodePilot Server started at http://${HOST}:${PORT}`);
@@ -25,13 +41,5 @@ const start = async () => {
   }
 };
 
-// Handle graceful shutdown
-const shutdown = (signal) => {
-  console.log(`\nReceived ${signal}. Shutting down NodePilot...`);
-  process.exit(0);
-};
-
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-
 start();
+

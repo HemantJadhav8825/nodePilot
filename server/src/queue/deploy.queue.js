@@ -7,10 +7,10 @@ import { redisConnection } from '../utils/redis.js';
 export const deployQueue = new Queue('deploy', {
   connection: redisConnection,
   defaultJobOptions: {
-    attempts: 3,
+    attempts: 2,
     backoff: {
-      type: 'exponential',
-      delay: 5000,
+      type: 'fixed',
+      delay: 30000,
     },
     removeOnComplete: {
       age: 3600, // keep for 1 hour
