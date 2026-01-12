@@ -13,7 +13,7 @@ const LOGS_DIR = path.join(__dirname, '../../logs');
  */
 export async function runPipeline(jobData, jobId) {
   const { repoName, branch } = jobData;
-  const pipelinePath = path.join(__dirname, '../../../../pipelines/pipeline.yml');
+  const pipelinePath = path.join(__dirname, '../../../pipelines/pipeline.yml');
   const logFilePath = path.join(LOGS_DIR, `${jobId}.log`);
   
   // Ensure logs directory exists
