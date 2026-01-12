@@ -1,5 +1,4 @@
 import Fastify from 'fastify';
-import formbody from '@fastify/formbody';
 import { githubWebhookHandler } from './api/webhook.controller.js';
 
 /**
@@ -12,9 +11,6 @@ export const createApp = async () => {
     },
     disableRequestLogging: true, // Custom logging for production
   });
-
-  // Register Form Body Support (for GitHub default content type)
-  await app.register(formbody);
 
   // Basic Health Check
   app.get('/health', async () => {
