@@ -1,22 +1,48 @@
-name: NodePilot MERN Production Pipeline
+name: NodePilot Dynamic Multi-App Pipeline
 steps:
-  - name: "Git: Pull Latest Changes"
-    run: "cd /var/www/mern && git pull origin $BRANCH"
+  - name: "Git: Pull Changes"
+    run: |
+      echo "Deploying to: $TARGET_DIR"
+      if [ ! -d "$TARGET_DIR" ]; then
+        echo "Error: Directory $TARGET_DIR does not exist."
+        exit 1
+      fi
+      cd $TARGET_DIR
+      git fetch origin $BRANCH
+      git reset --hard origin/$BRANCH
 
-  - name: "Backend: Install Dependencies"
-    run: "cd /var/www/mern/api && npm install --production"
+  - name: "Install: Dependencies"
+    run: |
+      cd $TARGET_DIR
+      if [ "$PM2_NAME" == "panchnity-api" ]; then
+        npm install --production
+      else
+        npm install
+      fi
 
-  - name: "Backend: Restart via PM2"
-    run: "pm2 restart mern-api || pm2 start /var/www/mern/api/src/server.js --name mern-api"
+  - name: "Build: Application"
+    run: |
+      cd $TARGET_DIR
+      # Only run build if the package.json has a build script
+      if grep -q '"build":' package.json; then
+        echo "Running build for $PM2_NAME..."
+        npm run build
+      else
+        echo "No build script found, skipping build step."
+      fi
 
-  - name: "Admin: Install Dependencies"
-    run: "cd /var/www/mern/admin && npm install"
+  - name: "Process: Restart via PM2"
+    run: |
+      echo "Restarting $PM2_NAME..."
+      # Attempt to reload/restart. If not exists, start it.
+      # Special case for Next.js apps to start correctly
+      if [ -f "$TARGET_DIR/next.config.js" ] || [ -f "$TARGET_DIR/next.config.mjs" ]; then
+        pm2 reload $PM2_NAME || pm2 start npm --name "$PM2_NAME" -- start
+      else
+        pm2 reload $PM2_NAME || pm2 start src/server.js --name "$PM2_NAME"
+      fi
 
-  - name: "Admin: Build Frontend"
-    run: "cd /var/www/mern/admin && npm run build"
-
-  - name: "Admin: Restart Service"
-    run: "pm2 restart mern-admin || pm2 start npm --name mern-admin -- start"
-
-  - name: "Nginx: Validate and Reload"
-    run: "sudo nginx -t && sudo nginx -s reload"
+  - name: "Post-Deploy: Nginx Reload"
+    run: |
+      echo "Finalizing deployment..."
+      sudo nginx -t && sudo nginx -s reload

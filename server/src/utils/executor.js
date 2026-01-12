@@ -42,12 +42,22 @@ export async function runPipeline(jobData, jobId) {
       log(`\n--- Step: ${step.name || 'Unnamed Step'} ---`);
 
       try {
+        // Extract repo short name (e.g., 'admin-panel' from 'HemantJadhav8825/admin-panel')
+        const repoShortName = repoName.split('/').pop();
+        const targetDir = `/root/mern/${repoShortName}`;
+        
         const subprocess = execa(step.run, {
           shell: true,
           all: true,
           timeout: 600000,
           killSignal: 'SIGKILL',
-          env: { ...process.env, REPO_NAME: repoName, BRANCH: branch },
+          env: { 
+            ...process.env, 
+            REPO_NAME: repoName, 
+            BRANCH: branch,
+            TARGET_DIR: targetDir,
+            PM2_NAME: repoShortName
+          },
         });
 
         subprocess.all.on('data', (data) => {
