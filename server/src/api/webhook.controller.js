@@ -21,10 +21,16 @@ export const githubWebhookHandler = async (request, reply) => {
   const event = request.headers['x-github-event'];
   const secret = process.env.GITHUB_SECRET;
 
-  // 1. Validate Event Type
+  // 1. Handle Ping Event (Verification from GitHub)
+  if (event === 'ping') {
+    request.log.info('Received ping event from GitHub');
+    return reply.status(200).send({ message: 'pong', zen: request.body.zen });
+  }
+
+  // 2. Validate Event Type (Only allow push)
   if (event !== 'push') {
-    request.log.info(`Ignored non-push event: ${event}`);
-    return reply.status(202).send({ message: 'Event ignored' });
+    request.log.info(`Ignored event: ${event}`);
+    return reply.status(202).send({ message: `NodePilot only processes 'push' events. ${event} ignored.` });
   }
 
   // 2. Validate Signature
