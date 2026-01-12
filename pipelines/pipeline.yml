@@ -1,0 +1,22 @@
+name: NodePilot MERN Production Pipeline
+steps:
+  - name: "Git: Pull Latest Changes"
+    run: "cd /var/www/mern && git pull origin $BRANCH"
+
+  - name: "Backend: Install Dependencies"
+    run: "cd /var/www/mern/api && npm install --production"
+
+  - name: "Backend: Restart via PM2"
+    run: "pm2 restart mern-api || pm2 start /var/www/mern/api/src/server.js --name mern-api"
+
+  - name: "Admin: Install Dependencies"
+    run: "cd /var/www/mern/admin && npm install"
+
+  - name: "Admin: Build Frontend"
+    run: "cd /var/www/mern/admin && npm run build"
+
+  - name: "Admin: Restart Service"
+    run: "pm2 restart mern-admin || pm2 start npm --name mern-admin -- start"
+
+  - name: "Nginx: Validate and Reload"
+    run: "sudo nginx -t && sudo nginx -s reload"
