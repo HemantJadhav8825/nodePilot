@@ -6,14 +6,20 @@ import { execa } from 'execa';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const LOGS_DIR = path.join(__dirname, '../../logs');
+const PROJECT_ROOT = path.resolve(__dirname, '../../../');
+const LOGS_DIR = path.join(PROJECT_ROOT, 'server/logs');
 
 /**
  * Pipeline Engine Executor
  */
 export async function runPipeline(jobData, jobId) {
   const { repoName, branch } = jobData;
-  const pipelinePath = path.join(__dirname, '../../../pipelines/pipeline.yml');
+  
+  // Resolution: Env Var > Default Path
+  const pipelinePath = process.env.PIPELINE_CONFIG_PATH 
+    ? path.resolve(process.env.PIPELINE_CONFIG_PATH)
+    : path.join(PROJECT_ROOT, 'pipelines/pipeline.yml');
+    
   const logFilePath = path.join(LOGS_DIR, `${jobId}.log`);
   
   // Ensure logs directory exists
@@ -27,8 +33,16 @@ export async function runPipeline(jobData, jobId) {
   };
 
   log(`[Executor] Starting pipeline for ${repoName} (Job: ${jobId})`);
+  log(`[Executor] Using pipeline config: ${pipelinePath}`);
 
   try {
+    // Verify file existence first for better error message
+    try {
+      await fs.access(pipelinePath);
+    } catch (e) {
+      throw new Error(`Pipeline config not found at: ${pipelinePath}`);
+    }
+
     const fileContent = await fs.readFile(pipelinePath, 'utf8');
     const config = yaml.load(fileContent);
 
@@ -44,7 +58,12 @@ export async function runPipeline(jobData, jobId) {
       try {
         // Extract repo short name (e.g., 'admin-panel' from 'HemantJadhav8825/admin-panel')
         const repoShortName = repoName.split('/').pop();
-        const targetDir = `/root/mern/${repoShortName}`;
+        
+        // Configurable base directory for deployments
+        const baseDir = process.env.DEPLOY_BASE_DIR || '/root/mern';
+        const targetDir = path.join(baseDir, repoShortName);
+        
+        log(`[Executor] Target Directory: ${targetDir}`);
         
         const subprocess = execa(step.run, {
           shell: true,
@@ -79,6 +98,8 @@ export async function runPipeline(jobData, jobId) {
     log(`[Executor] Pipeline Error: ${error.message}`);
     throw error;
   } finally {
-    logStream.end();
+    if (logStream) {
+      logStream.end();
+    }
   }
 }
