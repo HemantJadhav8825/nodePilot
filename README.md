@@ -64,42 +64,46 @@ NodePilot handles deployments using a decoupled, queue-based architecture to ens
 
 ### How it Works
 
-1. **Webhook Reception**: Fastify receives the request and verifies the HMAC SHA-256 signature using your secret.
-2. **Job Queueing**: The deployment task is added to a **BullMQ** queue backed by **Redis**.
-3. **Deploy Worker**: A separate worker process picks up the job and executes the pipeline steps.
-4. **Pipeline Engine**: Reads `pipelines/pipeline.yml` and executes commands using **Execa**.
+NodePilot: Low-Level Architecture Explanation
+NodePilot is a distributed CI/CD system designed to handle high-reliability deployments with minimal resource overhead. Here is how the entire process works, from the moment you push code to GitHub to the final deployment on your VPS.
 
-## Visual Flow
+1. The Entry Point: Webhook Reception
+   The process begins with a POST request from GitHub to your /webhook/github endpoint.
 
-```mermaid
-sequenceDiagram
-    participant GH as GitHub
-    participant NP as NodePilot Server
-    participant RD as Redis (Queue)
-    participant WK as NodePilot Worker
-    participant SH as VPS Shell (Execa)
+Fastify Server: Receives the raw request.
+HMAC Verification: To prevent "replay attacks" or unauthorized triggers, the server calculates a SHA-256 hash of the incoming body using your GITHUB_SECRET. It compares this hash with the x-hub-signature-256 header sent by GitHub. If they don't match exactly, the request is rejected immediately.
+Payload Extraction: The server extracts the repository name, clone URL, and branch name from the JSON body.
 
-    GH->>NP: HTTP POST (Webhook + Signature)
-    Note over NP: Verify HMAC Signature
-    NP->>RD: Add Job to "deploy" queue
-    NP-->>GH: 200 OK (Queued)
+2. The Broker: Redis & BullMQ
+   Instead of running the deployment directly (which would block the server and time out), NodePilot uses a Job Queue.
 
-    WK->>RD: Poll for new Job
-    RD->>WK: Delivery Job
-    Note over WK: Acquire Redis Lock
+BullMQ: Creates a "Job" containing the metadata (repo, branch, etc.).
+Redis: Acts as the database for the queue. It stores the job in a "waiting" state. This ensures that even if the server restarts, the deployment task is not lost.
 
-    WK->>SH: Read pipeline.yml
-    loop Every Step in YAML
-        WK->>SH: Run command (e.g., git pull)
-        SH-->>WK: Stream Output to Log File
-    end
+3. The Orchestrator: Deploy Worker
+   Running in a separate process, the nodepilot-worker listens to Redis.
 
-    Note over WK: Release Redis Lock
-    WK->>RD: Mark Job as Completed
-```
+Locking Mechanism: Before starting a deployment, the worker tries to set a nodepilot:deploy:lock key in Redis with a 15-minute expiration. This is crucial: it prevents two different workers from trying to update the same directory at the same time, which would corrupt your files.
+Concurrency Control: The worker is configured with concurrency: 2, meaning it can handle two different repositories simultaneously, but the locking ensures it won't handle the same repository or overlapping directories improperly.
 
-## Security & Reliability
+4. The Execution Engine: Pipeline Executor
+   This is where the actual shell commands happen.
 
-- **Atomic**: Redis locks prevent concurrent workers from corrupting the same directory.
-- **Persistent**: Jobs survive crashes thanks to Redis backing.
-- **Cryptographic**: All incoming requests are verified via GitHub signatures.
+YAML Parsing: The executor reads your
+pipelines/pipeline.yml
+file.
+Execa Engine: It uses execa to spawn shell processes. Unlike standard child_process, execa handles stream logging and timeouts gracefully.
+Dynamic Context: It injects environment variables into every command:
+TARGET_DIR: The path where the code lives (e.g., /root/mern/admin-panel).
+PM2_NAME: The process name derived from the repo name.
+Logging: Every line of output from your scripts (like npm install or pm2 restart) is captured in real-time and written to a physical log file in server/logs/ named after the job ID.
+
+#-------------------------------------------------------------------------
+Summary of Components
+BullMQ: Reliability (retries if a download fails).
+Redis: Persistence (jobs survive crashes).
+Execa: Control (manages shell command lifecycle).
+PM2: Stability (keeps the whole system alive).
+This architecture ensures your deployments are atomic (one at a time), traced (logs for every step), and secure (verified by GitHub).
+
+#-------------------------------------------------------------------------
