@@ -1,0 +1,11 @@
+[
+  {
+    "id": "nodepilot-api",
+    "name": "NodePilot API",
+    "repoName": "HemantJadhav8825/nodePilot",
+    "description": "Backend API for NodePilot CI/CD",
+    "branch": "main",
+    "targetDir": "/Users/hemantjadhav/Desktop/projects/nodePilot/server",
+    "pm2Name": "nodepilot-server"
+  }
+]
