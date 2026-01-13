@@ -5,9 +5,9 @@ import { createApp } from './app.js';
 
 // Resolve paths for ESM
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, '../.env') });
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
-const PORT = process.env.PORT || 7001;
+const PORT = process.env.PORT || 7000;
 const HOST = process.env.HOST || '0.0.0.0';
 
 /**
