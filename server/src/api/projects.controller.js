@@ -51,6 +51,8 @@ export const triggerDeploy = async (request, reply) => {
       repoName: project.repoName,
       cloneUrl: `https://github.com/${project.repoName}.git`, // Defaulting to public or configured
       branch: project.branch || "main",
+      targetDir: project.targetDir,
+      pm2Name: project.pm2Name,
       timestamp: new Date().toISOString(),
     });
 
@@ -67,24 +69,20 @@ export const createProject = async (request, reply) => {
       request.body;
 
     if (!id || !name || !repoName) {
-      return reply
-        .status(400)
-        .send({
-          error: "Bad Request",
-          message: "id, name, and repoName are required",
-        });
+      return reply.status(400).send({
+        error: "Bad Request",
+        message: "id, name, and repoName are required",
+      });
     }
 
     const data = await fs.readFile(PROJECTS_FILE, "utf8");
     const projects = JSON.parse(data);
 
     if (projects.find((p) => p.id === id)) {
-      return reply
-        .status(409)
-        .send({
-          error: "Conflict",
-          message: "Project with this ID already exists",
-        });
+      return reply.status(409).send({
+        error: "Conflict",
+        message: "Project with this ID already exists",
+      });
     }
 
     const newProject = {
