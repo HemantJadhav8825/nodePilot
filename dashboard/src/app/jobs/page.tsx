@@ -18,7 +18,7 @@ export default function BuildHistory() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:7001/api/jobs')
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/jobs`)
       .then(res => res.json())
       .then(data => {
         setJobs(data);

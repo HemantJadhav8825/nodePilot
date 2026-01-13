@@ -13,7 +13,7 @@ export default function Settings() {
 
   useEffect(() => {
     // This will fetch from a new endpoint I'll add soon
-    fetch('http://localhost:7001/api/settings/env')
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/settings/env`)
       .then(res => res.json())
       .then(data => {
         const vars = Object.entries(data).map(([key, value]) => ({ 

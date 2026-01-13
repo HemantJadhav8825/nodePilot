@@ -16,7 +16,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:7001/api/projects')
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects`)
       .then(res => res.json())
       .then(data => {
         setProjects(data);
@@ -30,7 +30,7 @@ export default function Dashboard() {
 
   const triggerDeploy = async (id: string) => {
     try {
-      const res = await fetch(`http://localhost:7001/api/projects/${id}/deploy`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${id}/deploy`, {
         method: 'POST'
       });
       const data = await res.json();
