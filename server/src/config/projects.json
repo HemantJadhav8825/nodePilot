@@ -7,5 +7,33 @@
     "branch": "main",
     "targetDir": "/Users/hemantjadhav/Desktop/projects/nodePilot/server",
     "pm2Name": "nodepilot-server"
+  },
+  {
+    "id": "admin-panel",
+    "name": "Admin Panel",
+    "repoName": "HemantJadhav8825/admin-panel",
+    "description": "MERN Admin Panel",
+    "branch": "main"
+  },
+  {
+    "id": "panchnity-api",
+    "name": "Panchnity API",
+    "repoName": "HemantJadhav8825/panchnity-api",
+    "description": "API for Panchnity",
+    "branch": "main"
+  },
+  {
+    "id": "panchnity",
+    "name": "Panchnity",
+    "repoName": "HemantJadhav8825/panchnity",
+    "description": "Main Frontend for Panchnity",
+    "branch": "main"
+  },
+  {
+    "id": "panchnity-next",
+    "name": "Panchnity Next",
+    "repoName": "HemantJadhav8825/panchnity-next",
+    "description": "Secondary Frontend for Panchnity",
+    "branch": "main"
   }
 ]
