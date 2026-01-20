@@ -32,7 +32,7 @@ export async function runPipeline(jobData, jobId) {
     // 1. Initial Target Directory Determination
     // We need a path to sync the repo to read the config
     const repoShortName = repoName.split("/").pop();
-    const baseDir = process.env.DEPLOY_BASE_DIR || "/root/mern";
+    const baseDir = process.env.DEPLOY_BASE_DIR || "/root";
     let targetDir = jobData.targetDir || path.join(baseDir, repoShortName);
 
     log(`[Executor] Preparing target directory: ${targetDir}`);
