@@ -1,111 +1,151 @@
-# NodePilot CI/CD
+<div align="center">
+  <img src="assets/logo.png" alt="NodePilot Logo" width="200" height="200" />
+  <h1>🚀 NodePilot CI/CD</h1>
+  <p><strong>High-reliability, distributed CI/CD system designed for lightweight and secure deployments.</strong></p>
 
-NodePilot is a high-reliability, distributed CI/CD system designed for lightweight and secure deployments on VPS environments. It allows you to automate your MERN stack (or any Node.js) deployments via GitHub Webhooks.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/badge/Node.js-v18+-green.svg)](https://nodejs.org/)
+[![Redis](https://img.shields.io/badge/Redis-Job%20Queue-red.svg)](https://redis.io/)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/your-username/nodePilot/graphs/commit-activity)
 
-## Prerequisites
+</div>
 
-Before installing NodePilot, ensure your VPS has the following:
+---
 
-- **Node.js**: v18.x or higher
-- **Redis**: Required for the job queue (BullMQ)
-- **PM2**: Recommended for process management
-- **Git**: For cloning and pulling repositories
+## 📖 Overview
 
-## Installation
+NodePilot is a distributed CI/CD engine built to streamline deployments on VPS environments. It solves the complexity of manual deployments by providing a robust, queue-based architecture that ensures every push to GitHub is handled with precision, security, and full traceability.
 
-1. **Clone the Repository**
+> [!IMPORTANT]
+> NodePilot is designed for performance. By decoupling the webhook listener from the deployment execution, it achieves near-zero downtime for the deployment pipeline itself.
+
+---
+
+## ✨ Key Features
+
+- **🛡️ Secure Triggers**: Uses HMAC SHA-256 signature verification for all GitHub Webhooks, preventing unauthorized deployment attempts.
+- **⛓️ Async Job Queue**: Powered by **Redis** and **BullMQ**, ensuring jobs are persisted and executed reliably even under load.
+- **🔒 Concurrent Safety**: Implements a distributed locking mechanism using Redis to prevent overlapping deployments on the same resource.
+- **📊 Real-time Dashboard**: A premium Next.js dashboard to monitor job status, view deployment logs, and manage projects.
+- **📜 Atomic Logging**: Every deployment step is captured in detailed, job-specific logs for easy debugging.
+- **⚡ High Performance**: Built on **Fastify** for the fastest possible webhook ingestion.
+
+---
+
+## 🏗️ Architecture
+
+NodePilot employs a modern, decoupled architecture to separate concerns and maximize reliability.
+
+### 1. High-Level Flow
+
+```mermaid
+graph TD
+    A[GitHub Push] -->|Webhook| B(Fastify Gateway)
+    B -->|HMAC Verification| C{Authorized?}
+    C -->|Yes| D[BullMQ Producer]
+    C -->|No| E[Reject Request]
+    D -->|Push Job| F[(Redis Queue)]
+    G[Worker Service] -->|Poll| F
+    G -->|Execute Pipeline| H[VPS Target Directory]
+    H -->|Update Status| I[Next.js Dashboard]
+```
+
+### 2. Deployment Sequence
+
+```mermaid
+sequenceDiagram
+    participant GH as GitHub
+    participant NP as NodePilot Gateway
+    participant RD as Redis (BullMQ)
+    participant WK as Deployment Worker
+    participant FS as File System
+
+    GH->>NP: POST /webhook/github (with HMAC)
+    NP->>NP: Verify Signature
+    NP->>RD: Enqueue Deployment Job
+    NP-->>GH: 202 Accepted
+
+    WK->>RD: Fetch Job
+    WK->>RD: Acquire Resource Lock
+    WK->>FS: Pull Latest Code
+    WK->>FS: Run build/deploy scripts
+    WK->>RD: Release Lock
+    WK->>RD: Mark Job Complete
+```
+
+---
+
+## 🛠️ Technical Implementation
+
+### Distributed Locking
+
+To prevent race conditions where multiple pushes might trigger simultaneous deployments for the same repository, NodePilot uses a **Redis-based locking mechanism**. Before any worker starts a task, it must acquire a unique lock identified by the repository URI.
+
+### Secure Webhooks
+
+Security is paramount. NodePilot doesn't just trust incoming requests. Every payload is validated using the `x-hub-signature-256` header from GitHub, ensuring that only triggers from your authorized repositories can initiate a deployment.
+
+---
+
+## 🖥️ Dashboard Showcase
+
+NodePilot comes with a sleek, modern dashboard built with **Next.js 15**, **Tailwind CSS**, and **Framer Motion**.
+
+- **Live Activity**: Monitor incoming webhooks and active deployments.
+- **Log Terminal**: View live streaming logs from your deployment workers.
+- **Project Management**: Configure repositories and environment variables on the fly.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+| Tool        | Version | Purpose             |
+| :---------- | :------ | :------------------ |
+| **Node.js** | v18.x+  | Runtime Environment |
+| **Redis**   | v6.x+   | Job Queue & Locking |
+| **PM2**     | Latest  | Process Management  |
+
+### Installation
+
+1. **Clone & Setup**
 
    ```bash
    git clone https://github.com/your-username/nodePilot.git
    cd nodePilot/server
-   ```
-
-2. **Install Dependencies**
-
-   ```bash
    npm install
    ```
 
-3. **Environment Setup**
-   Create a `.env` file in the `server` directory:
+2. **Environment Configuration**
+   Create a `.env` in the `server` directory:
+
    ```env
    PORT=7000
-   GITHUB_SECRET=your_webhook_secret_here
+   GITHUB_SECRET=your_secure_secret
    REDIS_HOST=127.0.0.1
    REDIS_PORT=6379
-   LOG_LEVEL=info
    ```
 
-## Getting Started
-
-1. **Start Redis** (if not already running):
-
-   ```bash
-   sudo systemctl start redis
-   ```
-
-2. **Start NodePilot with PM2**:
-   Use the provided configuration to start both the server and the worker:
-
+3. **Launch NodePilot**
    ```bash
    npx pm2 start ecosystem.config.cjs
    ```
 
-3. **Configure GitHub Webhook**:
-   - Go to your GitHub repository -> Settings -> Webhooks.
-   - Payload URL: `http://your-vps-ip:7000/webhook/github`
-   - Content type: `application/json`
-   - Secret: (Paste the `GITHUB_SECRET` from your `.env`)
-   - Which events: Just the `push` event.
+---
 
-## Architecture Overview
+## 🤝 Contributing
 
-NodePilot handles deployments using a decoupled, queue-based architecture to ensure stability and security.
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-### How it Works
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git checkout origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-NodePilot: Low-Level Architecture Explanation
-NodePilot is a distributed CI/CD system designed to handle high-reliability deployments with minimal resource overhead. Here is how the entire process works, from the moment you push code to GitHub to the final deployment on your VPS.
+---
 
-1. The Entry Point: Webhook Reception
-   The process begins with a POST request from GitHub to your /webhook/github endpoint.
-
-Fastify Server: Receives the raw request.
-HMAC Verification: To prevent "replay attacks" or unauthorized triggers, the server calculates a SHA-256 hash of the incoming body using your GITHUB_SECRET. It compares this hash with the x-hub-signature-256 header sent by GitHub. If they don't match exactly, the request is rejected immediately.
-Payload Extraction: The server extracts the repository name, clone URL, and branch name from the JSON body.
-
-2. The Broker: Redis & BullMQ
-   Instead of running the deployment directly (which would block the server and time out), NodePilot uses a Job Queue.
-
-BullMQ: Creates a "Job" containing the metadata (repo, branch, etc.).
-Redis: Acts as the database for the queue. It stores the job in a "waiting" state. This ensures that even if the server restarts, the deployment task is not lost.
-
-3. The Orchestrator: Deploy Worker
-   Running in a separate process, the nodepilot-worker listens to Redis.
-
-Locking Mechanism: Before starting a deployment, the worker tries to set a nodepilot:deploy:lock key in Redis with a 15-minute expiration. This is crucial: it prevents two different workers from trying to update the same directory at the same time, which would corrupt your files.
-Concurrency Control: The worker is configured with concurrency: 2, meaning it can handle two different repositories simultaneously, but the locking ensures it won't handle the same repository or overlapping directories improperly.
-
-4. The Execution Engine: Pipeline Executor
-   This is where the actual shell commands happen.
-
-YAML Parsing: The executor reads your
-pipelines/pipeline.yml
-file.
-Execa Engine: It uses execa to spawn shell processes. Unlike standard child_process, execa handles stream logging and timeouts gracefully.
-Dynamic Context: It injects environment variables into every command:
-TARGET_DIR: The path where the code lives (e.g., /root/mern/admin-panel).
-PM2_NAME: The process name derived from the repo name.
-Logging: Every line of output from your scripts (like npm install or pm2 restart) is captured in real-time and written to a physical log file in server/logs/ named after the job ID.
-
-#-------------------------------------------------------------------------
-Summary of Components
-BullMQ: Reliability (retries if a download fails).
-Redis: Persistence (jobs survive crashes).
-Execa: Control (manages shell command lifecycle).
-PM2: Stability (keeps the whole system alive).
-This architecture ensures your deployments are atomic (one at a time), traced (logs for every step), and secure (verified by GitHub).
-
-#-------------------------------------------------------------------------
-<img width="1012" height="684" alt="image" src="https://github.com/user-attachments/assets/5b1cb90d-8980-452c-8a6f-7f88eb003ffa" />
-
+<div align="center">
+  <p>Built with ❤️ by Hemant Jadhav</p>
+</div>

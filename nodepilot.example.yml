@@ -1,0 +1,24 @@
+# NodePilot Pipeline Configuration Example
+version: 1
+
+project:
+  name: my-mern-app
+  runtime: node
+  node_version: 18
+
+server:
+  # The path on the VPS where the project should be deployed
+  deploy_path: /var/www/my-mern-app
+
+# Define the steps to be executed sequentially
+# Each stage (install, build, test, deploy) is optional
+steps:
+  install:
+    - npm install
+  build:
+    - npm run build
+  # test:
+  #   - npm test
+  deploy:
+    - pm2 restart ecosystem.config.js
+    - sudo nginx -t && sudo nginx -s reload

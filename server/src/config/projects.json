@@ -35,5 +35,14 @@
     "repoName": "HemantJadhav8825/panchnity-next",
     "description": "Secondary Frontend for Panchnity",
     "branch": "main"
+  },
+  {
+    "id": "notionpilot",
+    "name": "NotionPilot",
+    "repoName": "HemantJadhav8825/notionPilot",
+    "description": "Monorepo for NotionPilot (Client & Server)",
+    "branch": "main",
+    "targetDir": "/root/notionPilot",
+    "pm2Name": "notionPilot-api"
   }
 ]
