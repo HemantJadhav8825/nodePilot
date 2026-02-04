@@ -1,42 +1,5 @@
 [
   {
-    "id": "nodepilot-api",
-    "name": "NodePilot API",
-    "repoName": "HemantJadhav8825/nodePilot",
-    "description": "Backend API for NodePilot CI/CD",
-    "branch": "main",
-    "targetDir": "/Users/hemantjadhav/Desktop/projects/nodePilot/server",
-    "pm2Name": "nodepilot-server"
-  },
-  {
-    "id": "admin-panel",
-    "name": "Admin Panel",
-    "repoName": "HemantJadhav8825/admin-panel",
-    "description": "MERN Admin Panel",
-    "branch": "main"
-  },
-  {
-    "id": "panchnity-api",
-    "name": "Panchnity API",
-    "repoName": "HemantJadhav8825/panchnity-api",
-    "description": "API for Panchnity",
-    "branch": "main"
-  },
-  {
-    "id": "panchnity",
-    "name": "Panchnity",
-    "repoName": "HemantJadhav8825/panchnity",
-    "description": "Main Frontend for Panchnity",
-    "branch": "main"
-  },
-  {
-    "id": "panchnity-next",
-    "name": "Panchnity Next",
-    "repoName": "HemantJadhav8825/panchnity-next",
-    "description": "Secondary Frontend for Panchnity",
-    "branch": "main"
-  },
-  {
     "id": "notionpilot",
     "name": "NotionPilot",
     "repoName": "HemantJadhav8825/notionPilot",
@@ -44,5 +7,14 @@
     "branch": "main",
     "targetDir": "/root/notionPilot",
     "pm2Name": "notionPilot-api"
+  },
+  {
+    "id": "webelong",
+    "name": "WeBelong",
+    "repoName": "HemantJadhav8825/hold-yourself",
+    "description": "Monorepo for WeBelong (Client & Server)",
+    "branch": "main",
+    "targetDir": "/root/hold-yourself",
+    "pm2Name": "hold-yourself"
   }
 ]
