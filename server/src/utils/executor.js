@@ -25,7 +25,7 @@ const isBranchAllowed = (config, currentBranch) => {
 };
 
 export async function runPipeline(jobData, jobId) {
-  const { repoName, branch, cloneUrl } = jobData;
+  const { repoName, branch, cloneUrl, manualTrigger } = jobData;
   const logFilePath = path.join(LOGS_DIR, `${jobId}.log`);
 
   // Ensure logs directory exists
@@ -76,7 +76,7 @@ export async function runPipeline(jobData, jobId) {
           { cwd: targetDir },
         );
         const remoteConfig = yaml.load(remoteConfigRaw);
-        if (!isBranchAllowed(remoteConfig, branch)) {
+        if (!manualTrigger && !isBranchAllowed(remoteConfig, branch)) {
           log(
             `[Executor] Skipped: Branch '${branch}' is not allowed by configuration.`,
           );
@@ -99,6 +99,12 @@ export async function runPipeline(jobData, jobId) {
       const fileContent = await fs.readFile(configPath, "utf8");
       config = yaml.load(fileContent);
       log(`[Executor] Loaded nodepilot.yml`);
+
+      if (manualTrigger) {
+        log(
+          `[Executor] Manual trigger detected. Bypassing branch restriction.`,
+        );
+      }
     } catch (e) {
       log(
         `[Executor] Warning: nodepilot.yml not found in project root. Falling back to default or failing.`,
@@ -141,7 +147,7 @@ export async function runPipeline(jobData, jobId) {
               { cwd: targetDir },
             );
             const remoteConfig = yaml.load(remoteConfigRaw);
-            if (!isBranchAllowed(remoteConfig, branch)) {
+            if (!manualTrigger && !isBranchAllowed(remoteConfig, branch)) {
               log(
                 `[Executor] Skipped: Branch '${branch}' is not allowed by configuration.`,
               );
@@ -160,7 +166,7 @@ export async function runPipeline(jobData, jobId) {
     }
 
     // Final check before execution (covers Clone case and re-sync case)
-    if (!isBranchAllowed(config, branch)) {
+    if (!manualTrigger && !isBranchAllowed(config, branch)) {
       log(
         `[Executor] Skipped: Branch '${branch}' is not allowed by configuration.`,
       );

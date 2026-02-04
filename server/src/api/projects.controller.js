@@ -58,6 +58,7 @@ export const triggerDeploy = async (request, reply) => {
       targetDir: project.targetDir,
       pm2Name: project.pm2Name,
       timestamp: new Date().toISOString(),
+      manualTrigger: true, // Bypass branch restrictions
     });
 
     return { status: "queued", project: project.name };
