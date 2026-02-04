@@ -36,6 +36,8 @@ export const getProject = async (request, reply) => {
 
 export const triggerDeploy = async (request, reply) => {
   const { id } = request.params;
+  const { branch } = request.body || {};
+
   try {
     const data = await fs.readFile(PROJECTS_FILE, "utf8");
     const projects = JSON.parse(data);
@@ -47,10 +49,12 @@ export const triggerDeploy = async (request, reply) => {
         .send({ error: "Not Found", message: "Project not found" });
     }
 
+    const deployBranch = branch || project.branch || "main";
+
     await deployQueue.add(`deploy-${project.id}`, {
       repoName: project.repoName,
       cloneUrl: `https://github.com/${project.repoName}.git`, // Defaulting to public or configured
-      branch: project.branch || "main",
+      branch: deployBranch,
       targetDir: project.targetDir,
       pm2Name: project.pm2Name,
       timestamp: new Date().toISOString(),

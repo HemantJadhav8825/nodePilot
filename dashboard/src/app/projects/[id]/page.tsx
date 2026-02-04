@@ -35,6 +35,14 @@ export default function ProjectDetails() {
       });
   }, [id]);
 
+  const [selectedBranch, setSelectedBranch] = useState<string>('');
+
+  useEffect(() => {
+    if (project?.branch) {
+      setSelectedBranch(project.branch);
+    }
+  }, [project]);
+
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this project?')) return;
     
@@ -56,7 +64,11 @@ export default function ProjectDetails() {
   const triggerDeploy = async () => {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${id}/deploy`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ branch: selectedBranch || 'main' })
       });
       alert('Deployment triggered!');
     } catch (err) {
@@ -67,6 +79,8 @@ export default function ProjectDetails() {
   if (loading) return <div className="p-10 text-center">Loading...</div>;
   if (!project) return <div className="p-10 text-center">Project not found</div>;
 
+  const branchOptions = ['main', 'dev', 'prod', 'uat', 'stage'];
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-8">
@@ -74,7 +88,18 @@ export default function ProjectDetails() {
           <h2 className="text-4xl font-bold">{project.name}</h2>
           <p className="text-muted mt-1">{project.repoName}</p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-4 items-center">
+          <select 
+            value={selectedBranch} 
+            onChange={(e) => setSelectedBranch(e.target.value)}
+            className="select select-bordered w-full max-w-xs"
+          >
+            {branchOptions.map((branch) => (
+              <option key={branch} value={branch}>
+                {branch}
+              </option>
+            ))}
+          </select>
           <button onClick={handleDelete} className="px-4 py-2 bg-error/10 text-error rounded-lg hover:bg-error/20 font-semibold transition-all">
             Delete Project
           </button>
