@@ -12,6 +12,18 @@ const LOGS_DIR = path.join(PROJECT_ROOT, "server/logs");
 /**
  * Pipeline Engine Executor (Dynamic YAML version)
  */
+
+const isBranchAllowed = (config, currentBranch) => {
+  if (config.branches && Array.isArray(config.branches)) {
+    return config.branches.includes(currentBranch);
+  }
+  if (config.branch && typeof config.branch === "string") {
+    return config.branch === currentBranch;
+  }
+  // If no branch configuration is present, allow all (default behavior)
+  return true;
+};
+
 export async function runPipeline(jobData, jobId) {
   const { repoName, branch, cloneUrl } = jobData;
   const logFilePath = path.join(LOGS_DIR, `${jobId}.log`);
@@ -55,6 +67,25 @@ export async function runPipeline(jobData, jobId) {
     } else {
       log(`[Executor] Fetching and resetting repository...`);
       await execa("git", ["fetch", "origin", branch], { cwd: targetDir });
+
+      // Peek check for branches
+      try {
+        const { stdout: remoteConfigRaw } = await execa(
+          "git",
+          ["show", `FETCH_HEAD:nodepilot.yml`],
+          { cwd: targetDir },
+        );
+        const remoteConfig = yaml.load(remoteConfigRaw);
+        if (!isBranchAllowed(remoteConfig, branch)) {
+          log(
+            `[Executor] Skipped: Branch '${branch}' is not allowed by configuration.`,
+          );
+          return { success: true, skipped: true };
+        }
+      } catch (e) {
+        // If config missing in remote, ignore (will fail later or fallback)
+      }
+
       await execa("git", ["checkout", branch], { cwd: targetDir });
       await execa("git", ["reset", "--hard", `origin/${branch}`], {
         cwd: targetDir,
@@ -99,13 +130,41 @@ export async function runPipeline(jobData, jobId) {
             cwd: targetDir,
           });
         } else {
+          log(`[Executor] Fetching and resetting repository in new target...`);
           await execa("git", ["fetch", "origin", branch], { cwd: targetDir });
+
+          // Peek check for branches in new target
+          try {
+            const { stdout: remoteConfigRaw } = await execa(
+              "git",
+              ["show", `FETCH_HEAD:nodepilot.yml`],
+              { cwd: targetDir },
+            );
+            const remoteConfig = yaml.load(remoteConfigRaw);
+            if (!isBranchAllowed(remoteConfig, branch)) {
+              log(
+                `[Executor] Skipped: Branch '${branch}' is not allowed by configuration.`,
+              );
+              return { success: true, skipped: true };
+            }
+          } catch (e) {
+            // If config missing in remote, ignore (will fail later or fallback)
+          }
+
           await execa("git", ["checkout", branch], { cwd: targetDir });
           await execa("git", ["reset", "--hard", `origin/${branch}`], {
             cwd: targetDir,
           });
         }
       }
+    }
+
+    // Final check before execution (covers Clone case and re-sync case)
+    if (!isBranchAllowed(config, branch)) {
+      log(
+        `[Executor] Skipped: Branch '${branch}' is not allowed by configuration.`,
+      );
+      return { success: true, skipped: true };
     }
 
     if (!config.steps) {
