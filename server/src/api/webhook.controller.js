@@ -59,8 +59,19 @@ export const githubWebhookHandler = async (request, reply) => {
   const { repository, ref } = request.body;
 
   // 3. Extract metadata
-  const cloneUrl = repository.clone_url;
+  let cloneUrl = repository.clone_url;
   const branch = ref.replace("refs/heads/", "");
+
+  // Inject Personal Access Token for private repos if available
+  if (process.env.GITHUB_TOKEN) {
+    try {
+      const urlObj = new URL(cloneUrl);
+      urlObj.username = process.env.GITHUB_TOKEN;
+      cloneUrl = urlObj.toString();
+    } catch (e) {
+      request.log.warn("Failed to inject auth token into clone URL");
+    }
+  }
 
   // 4. Find project configuration
   let projectConfig = {};
