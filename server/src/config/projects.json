@@ -9,12 +9,12 @@
     "pm2Name": "notionPilot-api"
   },
   {
-    "id": "webelong",
-    "name": "WeBelong",
-    "repoName": "HemantJadhav8825/hold-yourself",
-    "description": "Monorepo for WeBelong (Client & Server)",
+    "id": "Panchnity",
+    "name": "Panchnity-mono",
+    "repoName": "HemantJadhav8825/panchnity-mono",
+    "description": "Monorepo for Panchnity-mono (Client & Server)",
     "branch": "main",
-    "targetDir": "/root/hold-yourself",
-    "pm2Name": "hold-yourself"
+    "targetDir": "/root/panchnity-mono",
+    "pm2Name": "panchnity-mono"
   }
 ]
